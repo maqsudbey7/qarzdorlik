@@ -1,7 +1,7 @@
-import { qs, request, upload } from './client';
+import { download, qs, request, upload } from './client';
 import type {
   DebtorDetail, DebtorFilter, DebtorPayload, DebtorSort, DebtorSummary, Entry, EntryPayload, LoginPayload, Photo,
-  ProfilePayload, PublicSheet, RegisterPayload, Stats, TokenResponse, User,
+  Direction, ProfilePayload, PublicSheet, RegisterPayload, Stats, TokenResponse, User,
 } from '../types/api';
 
 export const authApi = {
@@ -9,10 +9,15 @@ export const authApi = {
   register: (d: RegisterPayload) => request<TokenResponse>('/auth/register', 'POST', d),
   me: () => request<User>('/auth/me'),
   updateMe: (d: ProfilePayload) => request<User>('/auth/me', 'PUT', d),
+  changePassword: (current_password: string, new_password: string) =>
+    request<TokenResponse>('/auth/password', 'POST', { current_password, new_password }),
+  logoutAll: () => request<TokenResponse>('/auth/logout-all', 'POST'),
+  exportData: () => download('/auth/export'),
+  deleteAccount: (password: string) => request<void>('/auth/me', 'DELETE', { password }),
 };
 
 export const debtorsApi = {
-  list: (f: { q?: string; filter?: DebtorFilter; sort?: DebtorSort }) => request<DebtorSummary[]>(`/debtors${qs(f)}`),
+  list: (f: { q?: string; filter?: DebtorFilter; sort?: DebtorSort; direction?: Direction }) => request<DebtorSummary[]>(`/debtors${qs(f)}`),
   get: (id: number) => request<DebtorDetail>(`/debtors/${id}`),
   create: (d: DebtorPayload) => request<DebtorDetail>('/debtors', 'POST', d),
   update: (id: number, d: DebtorPayload) => request<DebtorDetail>(`/debtors/${id}`, 'PUT', d),

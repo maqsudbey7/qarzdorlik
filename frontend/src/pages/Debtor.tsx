@@ -5,7 +5,8 @@ import { ArrowLeft, BellRing, Link2, Minus, Pencil, Phone, Plus, ScrollText, Tra
 import { useDebtor, useDeleteDebtor } from '../hooks/queries';
 import { useAppDispatch } from '../store/hooks';
 import { toast } from '../store/uiSlice';
-import { useT } from '../i18n';
+import { mk, useT } from '../i18n';
+import { confirmAsk } from '../components/feedback';
 import { fmtLongDate, money } from '../lib/format';
 import type { Entry, EntryKind } from '../types/api';
 import { CountUp, Empty, ErrorBox, NumberBadge, Skeleton } from '../components/ui';
@@ -35,16 +36,17 @@ export default function Debtor() {
   if (isPending) return <div className="space-y-4"><Skeleton className="h-16" /><Skeleton className="h-56" /><Skeleton className="h-24" /></div>;
   if (error || !d) return <ErrorBox error={error ?? new Error(t('c.notFound'))} />;
 
-  const remove = () => {
-    if (confirm(t('sheet.confirmDelete', { n: d.number, name: d.name })))
-      del.mutate(d.id, { onSuccess: () => { dispatch(toast(t('sheet.deleted'))); nav('/app', { replace: true }); } });
+  const remove = async () => {
+    if (await confirmAsk({ text: t('sheet.confirmDelete', { n: d.number, name: d.name }) }))
+      del.mutate(d.id, { onSuccess: () => { dispatch(toast(t('sheet.deleted'))); nav(d.direction === 'i_owe' ? '/app/qarzlarim' : '/app', { replace: true }); } });
   };
   const owes = d.balance > 0;
+  const mine = d.direction === 'i_owe';
 
   return (
     <div className="space-y-5">
       <div className="flex items-center gap-3">
-        <Link to="/app" className="icon-btn -ml-2" aria-label={t('c.back')}><ArrowLeft size={20} /></Link>
+        <Link to={mine ? '/app/qarzlarim' : '/app'} className="icon-btn -ml-2" aria-label={t('c.back')}><ArrowLeft size={20} /></Link>
         <motion.div initial={{ scale: 0.6, rotate: -10 }} animate={{ scale: 1, rotate: 0 }} transition={{ type: 'spring', stiffness: 300, damping: 15 }}>
           <NumberBadge n={d.number} size="lg" tone={d.overdue ? 'rose' : owes ? 'brand' : 'emerald'} />
         </motion.div>
@@ -53,6 +55,7 @@ export default function Debtor() {
           <div className="flex flex-wrap items-center gap-x-2 text-sm text-slate-500">
             {d.phone ? <a href={`tel:${d.phone}`} className="font-medium text-brand-600">{d.phone}</a> : <span>—</span>}
             <span className="text-xs">· {t('sheet.since', { d: fmtLongDate(d.created_at) })}</span>
+            <span className={`badge ${mine ? 'bg-amber-50 text-amber-700 ring-1 ring-amber-200' : 'bg-brand-50 text-brand-700 ring-1 ring-brand-200'}`}>{t(mine ? 'sheet.badgeMine' : 'sheet.badgeTheirs')}</span>
           </div>
         </div>
         <button className="icon-btn" aria-label={t('sheet.editDebtor')} title={t('sheet.editDebtor')} onClick={() => setEditDebtor(true)}><Pencil size={18} /></button>
@@ -63,25 +66,25 @@ export default function Debtor() {
       <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="card overflow-hidden">
         <div className={`p-5 sm:p-6 ${owes ? 'bg-gradient-to-br from-rose-50 to-white' : 'bg-gradient-to-br from-emerald-50 to-white'}`}>
           <div className="flex items-start justify-between gap-3">
-            <div className="text-sm font-medium text-slate-500">{owes ? t('sheet.balance') : t('sheet.cleared')}</div>
+            <div className="text-sm font-medium text-slate-500">{owes ? t(mk('sheet.balance', mine)) : t(mk('sheet.cleared', mine))}</div>
             <DueChip d={d} />
           </div>
           <div className={`mt-1 text-4xl font-extrabold tracking-tight tabular-nums sm:text-5xl ${owes ? 'text-rose-600' : 'text-emerald-600'}`}>
             <CountUp value={d.balance} format={money} />
           </div>
           <div className="mt-4 grid grid-cols-2 gap-3 text-sm">
-            <div className="rounded-xl bg-white/80 p-3 ring-1 ring-slate-100"><div className="text-xs text-slate-500">{t('sheet.given')}</div><div className="font-bold tabular-nums">{money(d.total_debt)}</div></div>
-            <div className="rounded-xl bg-white/80 p-3 ring-1 ring-slate-100"><div className="text-xs text-slate-500">{t('sheet.paid')}</div><div className="font-bold tabular-nums text-emerald-700">{money(d.total_paid)}</div></div>
+            <div className="rounded-xl bg-white/80 p-3 ring-1 ring-slate-100"><div className="text-xs text-slate-500">{t(mk('sheet.given', mine))}</div><div className="font-bold tabular-nums">{money(d.total_debt)}</div></div>
+            <div className="rounded-xl bg-white/80 p-3 ring-1 ring-slate-100"><div className="text-xs text-slate-500">{t(mk('sheet.paid', mine))}</div><div className="font-bold tabular-nums text-emerald-700">{money(d.total_paid)}</div></div>
           </div>
         </div>
         <div className="grid grid-cols-2 gap-2 border-t border-slate-100 p-3">
-          <button className="btn-debt py-3.5 text-base" onClick={() => setAdding('debt')}><Plus size={20} /> {t('sheet.addDebt')}</button>
-          <button className="btn-pay py-3.5 text-base" disabled={!owes} onClick={() => setAdding('payment')}><Minus size={20} /> {t('sheet.addPayment')}</button>
+          <button className="btn-debt py-3.5 text-base" onClick={() => setAdding('debt')}><Plus size={20} /> {t(mk('sheet.addDebt', mine))}</button>
+          <button className="btn-pay py-3.5 text-base" disabled={!owes} onClick={() => setAdding('payment')}><Minus size={20} /> {t(mk('sheet.addPayment', mine))}</button>
         </div>
         <div className="grid grid-cols-3 border-t border-slate-100 text-sm font-semibold text-slate-600">
           <a href={d.phone ? `tel:${d.phone}` : undefined} aria-disabled={!d.phone}
             className={`flex flex-col items-center gap-1 py-3 transition hover:bg-slate-50 ${d.phone ? '' : 'pointer-events-none opacity-40'}`}><Phone size={18} /> {t('sheet.call')}</a>
-          <button onClick={() => setRemind(true)} disabled={!owes} className="flex flex-col items-center gap-1 border-x border-slate-100 py-3 transition hover:bg-slate-50 disabled:opacity-40"><BellRing size={18} /> {t('sheet.remind')}</button>
+          <button onClick={() => setRemind(true)} disabled={!owes || mine} className="flex flex-col items-center gap-1 border-x border-slate-100 py-3 transition hover:bg-slate-50 disabled:opacity-40"><BellRing size={18} /> {t('sheet.remind')}</button>
           <button onClick={() => setShare(true)} className="flex flex-col items-center gap-1 py-3 transition hover:bg-slate-50"><Link2 size={18} /> {t('sheet.share')}</button>
         </div>
       </motion.div>
@@ -89,8 +92,8 @@ export default function Debtor() {
       <div>
         <h2 className="mb-3 px-1 font-bold">{t('sheet.history')}</h2>
         {d.entries.length
-          ? <Timeline entries={d.entries} src={{ kind: 'private' }} onEdit={setEditing} />
-          : <Empty icon={ScrollText} title={t('sheet.empty')} />}
+          ? <Timeline entries={d.entries} src={{ kind: 'private' }} onEdit={setEditing} mine={mine} />
+          : <Empty icon={ScrollText} title={t(mk('sheet.empty', mine))} />}
       </div>
 
       <EntryModal open={adding !== null} onClose={() => setAdding(null)} debtor={d} kind={adding ?? 'debt'} />

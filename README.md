@@ -1,4 +1,4 @@
-# 📒 Qarz daftar — qarzdorlar hisobi
+# 💸 Qarzingniber — qarz daftari
 
 Kimga, qachon, qancha qarz berganingizni yozib boring, **spisok yoki chek rasmini dalil** sifatida qo‘shing.
 Har bir qarzdorga **alohida varaq** va avtomatik **raqam** (#1, #2, …) beriladi.
@@ -12,6 +12,7 @@ Har bir qarzdorga **alohida varaq** va avtomatik **raqam** (#1, #2, …) berilad
 | Deploy | Vercel (frontend + FastAPI serverless) + Neon PostgreSQL |
 
 ## Imkoniyatlar
+- ↔️ **Ikki yo‘nalish** — «Menga qarzdorlar» (men berganlar) va «Mening qarzlarim» (men olganlar) alohida hisoblanadi
 - 🔢 **Har bir qarzdorga varaq** — avtomatik raqam, ism, telefon, izoh
 - ➕➖ **Yozuvlar** — “Qarz berdim” / “To‘lov oldim”, summa, sana (avtomatik hozirgi vaqt, o‘zgartirsa bo‘ladi), izoh
 - 📷 **Rasm — dalil** — har bir yozuvga 6 tagacha rasm (telefonda avtomatik siqiladi)
@@ -67,3 +68,11 @@ Jadvallar `qarz_` prefiksi bilan — boshqa loyihalar bilan bir bazada tura olad
 | GET / DELETE | `/api/photos/{id}` | Rasm |
 | GET | `/api/stats?year=` | Hisobot |
 | GET | `/api/public/{token}` | Mijoz uchun ochiq varaq |
+
+## Xavfsizlik va ma'lumotlar saqlanishi
+- Parollar faqat **bcrypt** xeshi ko‘rinishida; yangi parol: kamida 8 belgi, harf va raqam.
+- Kirishda cheklov: bitta raqamga 15 daqiqada 5 ta, bitta IP'ga 20 ta xato urinish.
+- Parol almashtirilsa yoki “Barcha qurilmalardan chiqish” bosilsa — eski tokenlar darhol yaroqsiz.
+- Sxema o‘zgarishlari `qarz_schema_migrations` orqali faqat qo‘shimcha (`ADD COLUMN IF NOT EXISTS`) — sayt yangilanganda ma'lumot o‘chmaydi.
+- Profil sahifasida: zaxira nusxa (JSON), parolni almashtirish, hisobni o‘chirish.
+- Demo hisob har 30 daqiqada asl holiga qaytadi.

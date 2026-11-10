@@ -1,5 +1,6 @@
 import re
 from datetime import date, datetime
+from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
@@ -27,7 +28,7 @@ class ORM(BaseModel):
 class RegisterIn(BaseModel):
     name: str = Field(min_length=2, max_length=120)
     phone: str
-    password: str = Field(min_length=6, max_length=128)
+    password: str = Field(min_length=1, max_length=128)   # qoidasi routerda (tushunarli xabar bilan)
     shop_name: str = Field(default="", max_length=120)
 
     _phone = field_validator("phone")(normalize_phone)
@@ -45,6 +46,15 @@ class ProfileIn(BaseModel):
     shop_name: str = Field(default="", max_length=120)
 
 
+class PasswordChangeIn(BaseModel):
+    current_password: str = Field(min_length=1, max_length=128)
+    new_password: str = Field(min_length=1, max_length=128)
+
+
+class PasswordConfirmIn(BaseModel):
+    password: str = Field(min_length=1, max_length=128)
+
+
 class UserOut(ORM):
     id: int
     name: str
@@ -59,8 +69,12 @@ class TokenOut(BaseModel):
 
 
 # ---------- Qarzdorlar ----------
+Direction = Literal["owes_me", "i_owe"]
+
+
 class DebtorIn(BaseModel):
     name: str = Field(min_length=1, max_length=120)
+    direction: Direction = "owes_me"
     phone: str = ""
     note: str = Field(default="", max_length=1000)
 
@@ -74,6 +88,7 @@ class DebtorSummary(BaseModel):
     name: str
     phone: str
     note: str
+    direction: str = "owes_me"
     created_at: datetime
     total_debt: int        # jami berilgan qarz
     total_paid: int        # jami qaytarilgan
@@ -126,6 +141,7 @@ class RecentEntry(BaseModel):
     debtor_id: int
     debtor_number: int
     debtor_name: str
+    direction: str = "owes_me"
     kind: EntryKind
     amount: int
     happened_at: datetime
@@ -145,11 +161,15 @@ class StatsOut(BaseModel):
     year: int
     monthly: list[MonthFlow]   # tanlangan yil bo'yicha 12 oy
     top: list[DebtorSummary]   # eng ko'p qarzdorlar
+    my_debt: int = 0           # men boshqalarga qarzdorman (jami)
+    my_creditors: int = 0      # nechta odamga qarzdorman
+    my_overdue_count: int = 0
     recent: list[RecentEntry]
 
 
 # ---------- Ochiq varaq (mijoz uchun) ----------
 class PublicSheet(BaseModel):
+    direction: str = "owes_me"
     shop_name: str
     owner_name: str
     number: int

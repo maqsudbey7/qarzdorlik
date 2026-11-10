@@ -8,6 +8,7 @@ import { fmtDay, num } from '../lib/format';
 import type { DebtorDetail } from '../types/api';
 import { Modal } from './ui';
 import { shareUrl } from '../lib/share';
+import { confirmAsk } from './feedback';
 
 
 async function copyText(text: string): Promise<boolean> {
@@ -94,7 +95,7 @@ export function ShareModal({ debtor, open, onClose }: { debtor: DebtorDetail; op
         <div className="grid grid-cols-2 gap-2">
           <a href={url} target="_blank" rel="noreferrer" className="btn-ghost"><ExternalLink size={16} /> {t('share.open')}</a>
           <button type="button" className="btn-ghost" disabled={reset.isPending}
-            onClick={() => { if (confirm(t('share.resetHint'))) reset.mutate(debtor.id, { onSuccess: () => dispatch(toast(t('share.resetDone'))) }); }}>
+            onClick={async () => { if (await confirmAsk({ text: t('share.resetHint'), yes: t('share.reset') })) reset.mutate(debtor.id, { onSuccess: () => dispatch(toast(t('share.resetDone'))) }); }}>
             <RefreshCw size={16} className={reset.isPending ? 'animate-spin' : ''} /> {t('share.reset')}
           </button>
         </div>

@@ -23,13 +23,45 @@ MESSAGES: dict[str, dict[str, str]] = {
     "image_too_big": {"uz": "Rasm juda katta (maks. {mb} MB)", "ru": "Слишком большое фото (макс. {mb} МБ)"},
     "too_many_photos": {"uz": "Bitta yozuvga ko‘pi bilan {n} ta rasm", "ru": "Не больше {n} фото на запись"},
     "db_unavailable": {
-        "uz": "Ma’lumotlar bazasiga ulanib bo‘lmadi. Vercel’da Storage → Neon bazasini loyihaga ulang (DATABASE_URL), so‘ng Redeploy qiling.",
-        "ru": "Не удалось подключиться к базе данных. В Vercel подключите Storage → Neon (DATABASE_URL) и сделайте Redeploy.",
+        "uz": "Server vaqtincha javob bermayapti. Ma’lumotlaringiz xavfsiz — bir daqiqadan so‘ng qayta urinib ko‘ring.",
+        "ru": "Сервер временно не отвечает. Ваши данные в безопасности — попробуйте через минуту.",
     },
-    "db_error": {"uz": "Bazada xatolik yuz berdi", "ru": "Ошибка базы данных"},
+    "db_error": {"uz": "Saqlashda xatolik. Qayta urinib ko‘ring", "ru": "Ошибка при сохранении. Попробуйте ещё раз"},
     "not_found": {"uz": "Topilmadi", "ru": "Не найдено"},
     "invalid_data": {"uz": "Ma’lumot noto‘g‘ri", "ru": "Неверные данные"},
+    "weak_password": {"uz": "Parol kamida 8 ta belgidan iborat bo‘lib, harf va raqam qatnashishi kerak",
+                      "ru": "Пароль должен быть не короче 8 символов и содержать буквы и цифры"},
+    "wrong_password": {"uz": "Parol noto‘g‘ri", "ru": "Неверный пароль"},
+    "same_password": {"uz": "Yangi parol eskisidan farq qilishi kerak", "ru": "Новый пароль должен отличаться от старого"},
+    "too_many_attempts": {"uz": "Juda ko‘p noto‘g‘ri urinish. {m} daqiqadan so‘ng qayta urinib ko‘ring",
+                          "ru": "Слишком много неудачных попыток. Попробуйте через {m} мин."},
+    "demo_forbidden": {"uz": "Demo hisobda bu amal o‘chirilgan", "ru": "В демо-аккаунте это действие отключено"},
+    "server_error": {"uz": "Kutilmagan xatolik. Birozdan so‘ng qayta urinib ko‘ring", "ru": "Непредвиденная ошибка. Попробуйте чуть позже"},
+    "v_missing": {"uz": "«{f}» to‘ldirilishi shart", "ru": "Заполните поле «{f}»"},
+    "v_short": {"uz": "«{f}» kamida {n} ta belgi bo‘lsin", "ru": "«{f}»: минимум {n} символов"},
+    "v_long": {"uz": "«{f}» juda uzun (ko‘pi bilan {n} ta belgi)", "ru": "«{f}» слишком длинное (максимум {n} символов)"},
+    "v_number": {"uz": "«{f}» raqam bo‘lishi kerak", "ru": "«{f}» должно быть числом"},
+    "v_min": {"uz": "«{f}» {n} dan kichik bo‘lmasin", "ru": "«{f}» не может быть меньше {n}"},
+    "v_gt": {"uz": "«{f}» {n} dan katta bo‘lishi kerak", "ru": "«{f}» должно быть больше {n}"},
+    "v_date": {"uz": "«{f}» sanasi noto‘g‘ri", "ru": "Неверная дата в поле «{f}»"},
+    "v_choice": {"uz": "«{f}» uchun noto‘g‘ri qiymat", "ru": "Неверное значение поля «{f}»"},
+    "v_bad": {"uz": "«{f}» noto‘g‘ri kiritilgan", "ru": "Поле «{f}» заполнено неверно"},
 }
+
+FIELDS: dict[str, tuple[str, str]] = {
+    "name": ("Ism", "Имя"), "phone": ("Telefon", "Телефон"), "password": ("Parol", "Пароль"),
+    "current_password": ("Joriy parol", "Текущий пароль"), "new_password": ("Yangi parol", "Новый пароль"),
+    "shop_name": ("Do‘kon nomi", "Название магазина"), "note": ("Izoh", "Примечание"), "amount": ("Summa", "Сумма"),
+    "happened_at": ("Sana", "Дата"), "due_date": ("Qaytarish muddati", "Срок возврата"), "kind": ("Turi", "Тип"),
+    "direction": ("Yo‘nalish", "Направление"),
+}
+
+
+def field_label(key: str) -> str:
+    pair = FIELDS.get(key)
+    if not pair:
+        return key
+    return pair[1] if lang_var.get() == "ru" else pair[0]
 
 
 def tr(key: str, **kw) -> str:

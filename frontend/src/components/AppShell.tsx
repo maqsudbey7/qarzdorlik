@@ -2,17 +2,18 @@ import { useEffect, useRef, useState } from 'react';
 import { useOnline } from '../lib/pwa';
 import { Link, Navigate, NavLink, useLocation, useNavigate, useOutlet, useSearchParams } from 'react-router-dom';
 import { motion } from 'motion/react';
-import { BarChart3, LogOut, Plus, Settings, Users, WifiOff } from 'lucide-react';
+import { BarChart3, HandCoins, LogOut, Plus, UserRound, Users, WifiOff } from 'lucide-react';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
 import { logout } from '../store/authSlice';
 import { useT, type TKey } from '../i18n';
 import { LangSwitch, Logo, Toasts } from './ui';
 import { PickDebtorModal } from './DebtorForms';
 
-const NAV: { to: string; label: TKey; icon: typeof Users; end?: boolean }[] = [
-  { to: '/app', label: 'nav.debtors', icon: Users, end: true },
-  { to: '/app/hisobot', label: 'nav.reports', icon: BarChart3 },
-  { to: '/app/sozlamalar', label: 'nav.settings', icon: Settings },
+const NAV: { to: string; label: TKey; short: TKey; icon: typeof Users; end?: boolean }[] = [
+  { to: '/app', label: 'dir.owesMe', short: 'nav.debtors', icon: Users, end: true },
+  { to: '/app/qarzlarim', label: 'dir.iOwe', short: 'nav.mine', icon: HandCoins },
+  { to: '/app/hisobot', label: 'nav.reports', short: 'nav.reports', icon: BarChart3 },
+  { to: '/app/sozlamalar', label: 'nav.profile', short: 'nav.profile', icon: UserRound },
 ];
 
 export default function AppShell() {
@@ -73,7 +74,9 @@ export default function AppShell() {
         <Link to="/app"><Logo /></Link>
         <div className="flex items-center gap-1">
           <LangSwitch />
-          <NavLink to="/app/sozlamalar" aria-label={t('nav.settings')} className={({ isActive }) => `icon-btn ${isActive ? 'bg-brand-50 text-brand-600' : ''}`}><Settings size={20} /></NavLink>
+          <Link to="/app/sozlamalar" aria-label={t('nav.profile')} className="ml-1 grid h-9 w-9 place-items-center rounded-full bg-gradient-to-br from-brand-500 to-violet-600 text-sm font-bold text-white">
+            {user.name[0]?.toUpperCase()}
+          </Link>
         </div>
         </div>
       </header>
@@ -90,27 +93,33 @@ export default function AppShell() {
         </motion.div>
       </main>
 
-      {/* Telefon: pastki menyu + katta "+" tugma */}
-      <nav className="pb-safe fixed inset-x-0 bottom-0 z-40 border-t border-slate-200 bg-white/90 backdrop-blur-xl lg:hidden">
-        <div className="relative mx-auto grid max-w-md grid-cols-3">
-          <NavLink to="/app" end className={({ isActive }) => `flex flex-col items-center gap-0.5 py-2.5 text-[11px] font-semibold ${isActive ? 'text-brand-600' : 'text-slate-500'}`}>
-            <Users size={21} />{t('nav.debtors')}
-          </NavLink>
-          <div className="relative">
+      {/* Telefon: pastki menyu — 4 bo'lim va o'rtada katta "+" tugma */}
+      <nav className="pb-safe fixed inset-x-0 bottom-0 z-40 border-t border-slate-200 bg-white/95 backdrop-blur-xl lg:hidden">
+        <div className="mx-auto grid max-w-md grid-cols-5 items-end">
+          {NAV.slice(0, 2).map((n) => <BottomItem key={n.to} {...n} />)}
+          <div className="flex flex-col items-center pb-1.5">
             <motion.button onClick={startDebt} whileTap={{ scale: 0.92 }} aria-label={t('nav.new')}
-              className="absolute -top-6 left-1/2 grid h-14 w-14 -translate-x-1/2 place-items-center rounded-2xl bg-gradient-to-br from-brand-500 to-violet-600 text-white shadow-glow ring-4 ring-white">
+              className="-mt-5 grid h-14 w-14 place-items-center rounded-2xl bg-gradient-to-br from-brand-500 to-violet-600 text-white shadow-glow ring-4 ring-white">
               <Plus size={28} />
             </motion.button>
-            <span className="absolute bottom-2 left-1/2 -translate-x-1/2 whitespace-nowrap text-[11px] font-semibold text-brand-600">{t('nav.new')}</span>
+            <span className="mt-0.5 whitespace-nowrap text-[10px] font-semibold text-brand-600">{t('nav.new')}</span>
           </div>
-          <NavLink to="/app/hisobot" className={({ isActive }) => `flex flex-col items-center gap-0.5 py-2.5 text-[11px] font-semibold ${isActive ? 'text-brand-600' : 'text-slate-500'}`}>
-            <BarChart3 size={21} />{t('nav.reports')}
-          </NavLink>
+          {NAV.slice(2).map((n) => <BottomItem key={n.to} {...n} />)}
         </div>
       </nav>
 
-      <PickDebtorModal open={picking} onClose={() => setPicking(false)} onPick={(d) => onPick(d.id)} />
+      <PickDebtorModal open={picking} onClose={() => setPicking(false)} onPick={(d) => onPick(d.id)}
+        direction={pathname.startsWith('/app/qarzlarim') ? 'i_owe' : undefined} />
       <Toasts />
     </div>
+  );
+}
+
+function BottomItem({ to, short, icon: Icon, end }: (typeof NAV)[number]) {
+  const t = useT();
+  return (
+    <NavLink to={to} end={end} className={({ isActive }) => `flex min-w-0 flex-col items-center gap-0.5 px-0.5 py-2.5 text-[10px] font-semibold leading-tight ${isActive ? 'text-brand-600' : 'text-slate-500'}`}>
+      <Icon size={21} /><span className="w-full truncate text-center">{t(short)}</span>
+    </NavLink>
   );
 }

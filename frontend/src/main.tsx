@@ -7,18 +7,20 @@ import { MotionConfig } from 'motion/react';
 import { store } from './store';
 import { clearUserData, setupPwa } from './lib/pwa';
 import App from './App';
+import { ConfirmHost, ErrorBoundary } from './components/feedback';
 import './index.css';
 
 setupPwa();
 
 const queryClient = new QueryClient({
-  defaultOptions: { queries: { retry: 1, refetchOnWindowFocus: false, staleTime: 15_000 } },
+  defaultOptions: { queries: { retry: (n, e) => n < 1 && ![401, 403, 404, 422].includes((e as { status?: number }).status ?? 0), refetchOnWindowFocus: false, staleTime: 15_000 } },
 });
 
 // Foydalanuvchi chiqqanda — telefonda saqlangan ma'lumotlarni tozalaymiz
 let lastToken = store.getState().auth.token;
 store.subscribe(() => {
   const token = store.getState().auth.token;
+  // Chiqildi yoki parol almashib boshqa token keldi — eski ma'lumot ekranda qolmasin
   if (lastToken && !token) { clearUserData(); queryClient.clear(); }
   lastToken = token;
 });
@@ -28,9 +30,12 @@ createRoot(document.getElementById('root')!).render(
     <Provider store={store}>
       <QueryClientProvider client={queryClient}>
         <MotionConfig reducedMotion="user">
-          <BrowserRouter>
-            <App />
-          </BrowserRouter>
+          <ErrorBoundary>
+            <BrowserRouter>
+              <App />
+            </BrowserRouter>
+            <ConfirmHost />
+          </ErrorBoundary>
         </MotionConfig>
       </QueryClientProvider>
     </Provider>

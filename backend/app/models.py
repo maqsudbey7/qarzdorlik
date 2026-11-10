@@ -27,6 +27,9 @@ class User(Base):
     phone: Mapped[str] = mapped_column(String(20), unique=True, index=True)
     shop_name: Mapped[str] = mapped_column(String(120), default="")   # eslatma xabarlarida ko'rinadi
     password_hash: Mapped[str] = mapped_column(String(100))
+    # Parol o'zgarsa yoki "barcha qurilmalardan chiqish" bosilsa oshadi — eski tokenlar ishlamay qoladi
+    token_version: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
+    demo_reset_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
     debtors: Mapped[list["Debtor"]] = relationship(back_populates="user", cascade="all, delete-orphan")
@@ -44,6 +47,8 @@ class Debtor(Base):
     name: Mapped[str] = mapped_column(String(120))
     phone: Mapped[str] = mapped_column(String(20), default="")
     note: Mapped[str] = mapped_column(Text, default="")
+    # owes_me — u menga qarzdor (men berdim); i_owe — men unga qarzdorman (men oldim)
+    direction: Mapped[str] = mapped_column(String(10), default="owes_me", server_default="owes_me", index=True)
     share_token: Mapped[str] = mapped_column(String(40), unique=True, index=True)  # mijozga ko'rsatish havolasi
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
@@ -87,3 +92,15 @@ class Photo(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
     entry: Mapped[Entry] = relationship(back_populates="photos")
+
+
+class LoginAttempt(Base):
+    """Kirish urinishlari — parolni terib topishga qarshi cheklov uchun."""
+
+    __tablename__ = "qarz_login_attempts"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    phone: Mapped[str] = mapped_column(String(20), index=True)
+    ip: Mapped[str] = mapped_column(String(64), index=True)
+    success: Mapped[bool] = mapped_column(default=False)
+    at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), index=True)

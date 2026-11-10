@@ -1,11 +1,11 @@
 import { Link, useSearchParams } from 'react-router-dom';
 import { motion } from 'motion/react';
-import { AlertTriangle, ArrowDownLeft, ArrowUpRight, BookOpen, CheckCircle2, ChevronRight, Search } from 'lucide-react';
+import { AlertTriangle, ArrowDownLeft, ArrowUpRight, BookOpen, CheckCircle2, ChevronRight, HandCoins, Search } from 'lucide-react';
 import { useDebtors, useStats } from '../hooks/queries';
 import { useAppSelector } from '../store/hooks';
 import { useT, type TKey } from '../i18n';
 import { dayLabel, daysUntil, money, moneyShort } from '../lib/format';
-import type { DebtorFilter, DebtorSort, DebtorSummary } from '../types/api';
+import type { DebtorFilter, DebtorSort, DebtorSummary, Direction } from '../types/api';
 import { CountUp, Empty, ErrorBox, NumberBadge, Skeleton } from '../components/ui';
 import { InstallBanner } from '../components/InstallCard';
 
@@ -38,7 +38,7 @@ export function DebtorRow({ d, i = 0 }: { d: DebtorSummary; i?: number }) {
         </div>
         <div className="text-right">
           {d.balance > 0
-            ? <div className={`font-extrabold tabular-nums ${d.overdue ? 'text-rose-600' : 'text-slate-900'}`}>{money(d.balance)}</div>
+            ? <div className={`font-extrabold tabular-nums ${d.overdue ? 'text-rose-600' : d.direction === 'i_owe' ? 'text-orange-600' : 'text-slate-900'}`}>{money(d.balance)}</div>
             : <span className="badge bg-emerald-50 text-emerald-700"><CheckCircle2 size={12} /> {t('home.cleared')}</span>}
         </div>
         <ChevronRight size={18} className="hidden shrink-0 text-slate-300 transition group-hover:translate-x-0.5 group-hover:text-slate-500 sm:block" />
@@ -47,7 +47,8 @@ export function DebtorRow({ d, i = 0 }: { d: DebtorSummary; i?: number }) {
   );
 }
 
-export default function Home() {
+export default function Home({ direction = 'owes_me' }: { direction?: Direction }) {
+  const mine = direction === 'i_owe';
   const t = useT();
   const user = useAppSelector((s) => s.auth.user);
   const [sp, setSp] = useSearchParams();
@@ -61,14 +62,40 @@ export default function Home() {
   };
 
   const stats = useStats().data;
-  const debtors = useDebtors({ q: q || undefined, filter, sort });
-  const emptyBook = stats && stats.debtors_total === 0;
+  const debtors = useDebtors({ q: q || undefined, filter, sort, direction });
+  const emptyBook = mine ? !q && filter === 'all' && debtors.data?.length === 0 : stats && stats.debtors_total === 0;
 
   return (
     <div className="space-y-5">
       <p className="text-sm font-medium text-slate-500">{t('home.hello', { name: user?.name.split(' ')[0] ?? '' })}</p>
       <InstallBanner />
 
+      {/* Ikki bo'lim: menga qarzdorlar / mening qarzlarim */}
+      <div className="grid grid-cols-2 gap-1.5 rounded-2xl bg-slate-200/60 p-1.5">
+        {([['owes_me', '/app', 'dir.owesMe', 'dir.owesMeSub'], ['i_owe', '/app/qarzlarim', 'dir.iOwe', 'dir.iOweSub']] as const).map(([d, to, l, sub]) => (
+          <Link key={d} to={to} replace className={`relative rounded-xl px-3 py-2 text-center transition ${direction === d ? 'text-slate-900' : 'text-slate-500'}`}>
+            {direction === d && <motion.span layoutId="dir-tab" className="absolute inset-0 rounded-xl bg-white shadow-sm" transition={{ type: 'spring', stiffness: 420, damping: 34 }} />}
+            <span className="relative block text-sm font-bold">{t(l)}</span>
+            <span className="relative block text-[11px] font-medium opacity-80">{t(sub)}</span>
+          </Link>
+        ))}
+      </div>
+
+      {mine ? (
+        <motion.div key="mine" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}
+          className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-amber-500 via-orange-500 to-rose-600 p-5 text-white shadow-lg shadow-orange-500/30 sm:p-7">
+          <div className="bg-dots absolute inset-0 opacity-50" />
+          <div className="relative">
+            <div className="text-sm text-orange-50">{t('home.totalMine')}</div>
+            <div className="mt-1 text-4xl font-extrabold tracking-tight sm:text-5xl">
+              {stats ? <CountUp value={stats.my_debt} format={(n) => moneyShort(n)} /> : '…'} <span className="text-lg font-semibold text-orange-100">{t('c.currency')}</span>
+            </div>
+            <div className="mt-1 text-sm text-orange-50">{t('home.totalSubMine', { n: stats?.my_creditors ?? 0 })}</div>
+            <p className="mt-4 rounded-2xl bg-white/15 p-3 text-xs leading-relaxed ring-1 ring-white/20">{t('home.mineHint')}</p>
+          </div>
+        </motion.div>
+      ) : (
+      <>
       {/* Jami qarz kartochkasi */}
       <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}
         className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-brand-600 via-brand-700 to-violet-800 p-5 text-white shadow-glow sm:p-7">
@@ -98,8 +125,18 @@ export default function Home() {
           </div>
         </div>
       </motion.div>
+      {!!stats?.my_debt && (
+        <Link to="/app/qarzlarim" className="flex items-center gap-3 rounded-2xl bg-amber-50 px-4 py-3 text-sm ring-1 ring-amber-200 transition active:scale-[.99]">
+          <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-amber-500 text-white"><ArrowDownLeft size={18} /></span>
+          <span className="flex-1"><b className="text-amber-900">{t('home.iOweCard', { v: money(stats.my_debt) })}</b><span className="block text-xs text-amber-700">{t('home.iOweCardSub', { n: stats.my_creditors })}</span></span>
+          <ChevronRight size={18} className="text-amber-500" />
+        </Link>
+      )}
+      </>
+      )}
 
       {emptyBook ? (
+        mine ? <Empty icon={HandCoins} title={t('home.emptyTitleMine')} text={t('home.emptyTextMine')} /> :
         <Empty icon={BookOpen} title={t('home.emptyTitle')} text={t('home.emptyText')}>
           <ol className="space-y-2 text-left text-sm text-slate-600">
             {(['home.how1', 'home.how2', 'home.how3'] as TKey[]).map((k, i) => (

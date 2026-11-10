@@ -24,7 +24,7 @@ def by_token(db: Session, token: str) -> Debtor:
 def public_sheet(token: str, db: Session = Depends(get_db)):
     d = by_token(db, token)
     s = summaries(db, [d])[0]
-    return PublicSheet(shop_name=d.user.shop_name, owner_name=d.user.name, number=d.number, name=d.name,
+    return PublicSheet(direction=d.direction or "owes_me", shop_name=d.user.shop_name, owner_name=d.user.name, number=d.number, name=d.name,
                        total_debt=s.total_debt, total_paid=s.total_paid, balance=s.balance,
                        entries=[EntryOut.model_validate(e) for e in d.entries])
 

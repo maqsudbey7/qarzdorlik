@@ -5,7 +5,8 @@ import { entriesApi } from '../api/endpoints';
 import { useDeleteEntry, useDeletePhoto, useRefresh } from '../hooks/queries';
 import { useAppDispatch } from '../store/hooks';
 import { toast } from '../store/uiSlice';
-import { useT, type TKey } from '../i18n';
+import { mk, useT, type TKey } from '../i18n';
+import { confirmAsk } from './feedback';
 import { compressImage } from '../lib/image';
 import { groupDigits, isoDay, money, parseDigits, toLocalInput } from '../lib/format';
 import type { DebtorSummary, Entry, EntryKind } from '../types/api';
@@ -38,6 +39,7 @@ function EntryForm({ debtor, entry, initialKind, onDone }: { debtor: DebtorSumma
   const delPhoto = useDeletePhoto();
   const fileInput = useRef<HTMLInputElement>(null);
   const [kind, setKind] = useState<EntryKind>(initialKind);
+  const mine = debtor.direction === 'i_owe';
   const [amount, setAmount] = useState(entry ? groupDigits(String(entry.amount)) : '');
   const [when, setWhen] = useState(toLocalInput(entry ? new Date(entry.happened_at) : new Date()));
   const [note, setNote] = useState(entry?.note ?? '');
@@ -81,7 +83,7 @@ function EntryForm({ debtor, entry, initialKind, onDone }: { debtor: DebtorSumma
         await entriesApi.uploadPhoto(saved.id, await compressImage(photos[i].file));
       }
       refresh();
-      dispatch(toast(t(entry ? 'entry.updated' : kind === 'debt' ? 'entry.savedDebt' : 'entry.savedPay')));
+      dispatch(toast(t(entry ? 'entry.updated' : mk(kind === 'debt' ? 'entry.savedDebt' : 'entry.savedPay', mine))));
       onDone();
     } catch (err) {
       setError(err as Error);
@@ -100,7 +102,7 @@ function EntryForm({ debtor, entry, initialKind, onDone }: { debtor: DebtorSumma
             className={`relative flex items-center justify-center gap-2 rounded-xl py-3 text-sm font-bold transition ${kind === k ? 'text-white' : 'text-slate-600'}`}>
             {kind === k && <motion.span layoutId="kind" className={`absolute inset-0 rounded-xl shadow-lg ${k === 'debt' ? 'bg-rose-600 shadow-rose-600/30' : 'bg-emerald-600 shadow-emerald-600/30'}`} transition={{ type: 'spring', stiffness: 450, damping: 34 }} />}
             <span className="relative">{k === 'debt' ? <Plus size={18} /> : <Minus size={18} />}</span>
-            <span className="relative">{t(k === 'debt' ? 'entry.newDebt' : 'entry.newPayment')}</span>
+            <span className="relative">{t(mk(k === 'debt' ? 'entry.newDebt' : 'entry.newPayment', mine))}</span>
           </button>
         ))}
       </div>
@@ -121,7 +123,7 @@ function EntryForm({ debtor, entry, initialKind, onDone }: { debtor: DebtorSumma
       </div>
 
       <Field label={t('c.note')}>
-        <input className="input" value={note} onChange={(e) => setNote(e.target.value)} placeholder={t(kind === 'debt' ? 'entry.notePhDebt' : 'entry.notePhPay')} />
+        <input className="input" value={note} onChange={(e) => setNote(e.target.value)} placeholder={t(mk(kind === 'debt' ? 'entry.notePhDebt' : 'entry.notePhPay', mine))} />
       </Field>
 
       <div>
@@ -180,7 +182,7 @@ function EntryForm({ debtor, entry, initialKind, onDone }: { debtor: DebtorSumma
       <div className="flex gap-2">
         {entry && (
           <button type="button" className="btn-soft px-4 text-rose-600" aria-label={t('c.delete')} disabled={busy}
-            onClick={() => { if (confirm(t('entry.confirmDelete'))) delEntry.mutate(entry.id, { onSuccess: () => { dispatch(toast(t('entry.deleted'))); onDone(); } }); }}>
+            onClick={async () => { if (await confirmAsk({ text: t('entry.confirmDelete') })) delEntry.mutate(entry.id, { onSuccess: () => { dispatch(toast(t('entry.deleted'))); onDone(); } }); }}>
             <Trash2 size={18} />
           </button>
         )}

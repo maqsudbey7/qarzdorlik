@@ -1,10 +1,10 @@
-/* Qarz daftar — service worker.
+/* Qarzingniber — service worker.
  * - Ilova qobig'i (HTML, JS, CSS, ikonkalar) keshlanadi → tez ochiladi, internet bo'lmasa ham ochiladi.
  * - Ma'lumotlar (GET /api/...) avval internetdan, bo'lmasa oxirgi saqlangan nusxadan.
  * - Rasmlar o'zgarmaydi → bir marta yuklanadi va keshdan beriladi.
  * - Kirish/chiqish so'rovlari va o'zgartirishlar (POST/PUT/DELETE) hech qachon keshlanmaydi.
  */
-const SHELL = 'qarz-shell-v1';
+const SHELL = 'qarz-shell-v2';
 const API = 'qarz-api-v1';
 const PHOTOS = 'qarz-photos-v1';
 const KEEP = [SHELL, API, PHOTOS];

@@ -109,10 +109,73 @@ def test_demo_and_languages(client):
     r = client.post("/api/auth/login", json={"phone": "+998900000000", "password": "demo123"})
     h = {"Authorization": f"Bearer {r.json()['access_token']}"}
     debtors = client.get("/api/debtors", headers=h).json()
-    assert len(debtors) == 7 and {d["number"] for d in debtors} == set(range(1, 8))
+    assert len(debtors) == 9 and {d["number"] for d in debtors} == set(range(1, 10))
+    assert sum(d["direction"] == "i_owe" for d in debtors) == 2
     detail = client.get(f"/api/debtors/{debtors[0]['id']}", headers=h).json()
     photo = next((p for e in detail["entries"] for p in e["photos"]), None)
     if photo:
         assert client.get(f"/api/photos/{photo['id']}", headers=h).headers["content-type"].startswith("image/svg")
     ru = client.post("/api/auth/login", json={"phone": "+998900000000", "password": "x"}, headers={"Accept-Language": "ru"})
     assert ru.json()["detail"] == "Неверный телефон или пароль"
+
+
+# ---------- Men qarzdorman ----------
+def test_i_owe_direction(client, user):
+    r = client.post("/api/debtors", headers=user, json={"name": "Ulgurji baza", "direction": "i_owe"})
+    assert r.status_code == 201 and r.json()["direction"] == "i_owe"
+    did = r.json()["id"]
+    client.post(f"/api/debtors/{did}/entries", headers=user, json={"kind": "debt", "amount": 1_000_000})
+    client.post(f"/api/debtors/{did}/entries", headers=user, json={"kind": "payment", "amount": 400_000})
+    other = client.post("/api/debtors", headers=user, json={"name": "Mijoz"}).json()
+    client.post(f"/api/debtors/{other['id']}/entries", headers=user, json={"kind": "debt", "amount": 250_000})
+    mine = client.get("/api/debtors?direction=i_owe", headers=user).json()
+    assert [d["name"] for d in mine] == ["Ulgurji baza"] and mine[0]["balance"] == 600_000
+    assert [d["name"] for d in client.get("/api/debtors?direction=owes_me", headers=user).json()] == ["Mijoz"]
+    s = client.get("/api/stats", headers=user).json()
+    assert s["outstanding"] == 250_000 and s["my_debt"] == 600_000 and s["my_creditors"] == 1
+    assert s["month_given"] == 250_000
+
+
+# ---------- Xavfsizlik ----------
+def test_weak_password_and_friendly_messages(client):
+    r = client.post("/api/auth/register", json={"name": "Ali", "phone": "+998901234567", "password": "123"})
+    assert r.status_code == 422 and "8" in r.json()["detail"]
+    r = client.post("/api/auth/register", json={"name": "", "phone": "+998901234567", "password": "secret12"})
+    assert r.json()["detail"] == "«Ism» kamida 2 ta belgi bo‘lsin"
+
+
+def test_rate_limit_and_password_change(client, user):
+    for _ in range(5):
+        client.post("/api/auth/login", json={"phone": "+998911112233", "password": "xato1234"})
+    assert client.post("/api/auth/login", json={"phone": "+998911112233", "password": "secret12"}).status_code == 429
+    r = client.post("/api/auth/password", headers=user, json={"current_password": "secret12", "new_password": "Yangi12345"})
+    assert r.status_code == 200
+    assert client.get("/api/auth/me", headers=user).status_code == 401
+    assert client.get("/api/auth/me", headers={"Authorization": f"Bearer {r.json()['access_token']}"}).status_code == 200
+
+
+def test_export_delete_and_headers(client, user):
+    client.post("/api/debtors", headers=user, json={"name": "Ali"})
+    r = client.get("/api/auth/export", headers=user)
+    assert r.status_code == 200 and r.json()["sheets"][0]["name"] == "Ali"
+    assert r.headers["x-frame-options"] == "DENY"
+    assert client.request("DELETE", "/api/auth/me", headers=user, json={"password": "xato"}).status_code == 400
+    assert client.request("DELETE", "/api/auth/me", headers=user, json={"password": "secret12"}).status_code == 204
+
+
+def test_demo_has_both_directions_and_resets(client):
+    tok = client.post("/api/auth/login", json={"phone": "+998900000000", "password": "demo123"}).json()["access_token"]
+    h = {"Authorization": f"Bearer {tok}"}
+    assert client.get("/api/debtors?direction=i_owe", headers=h).json()
+    assert client.post("/api/auth/password", headers=h, json={"current_password": "demo123", "new_password": "boshqa123"}).status_code == 403
+    first = client.get("/api/debtors", headers=h).json()[0]["id"]
+    client.delete(f"/api/debtors/{first}", headers=h)
+    from datetime import datetime, timedelta, timezone
+    from app.database import SessionLocal
+    from app.models import User
+    with SessionLocal() as db:
+        u = db.query(User).filter(User.phone == "+998900000000").one()
+        u.demo_reset_at = datetime.now(timezone.utc) - timedelta(hours=1)
+        db.commit()
+    client.post("/api/auth/login", json={"phone": "+998900000000", "password": "demo123"})
+    assert len(client.get("/api/debtors", headers=h).json()) == 9

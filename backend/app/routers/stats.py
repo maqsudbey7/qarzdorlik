@@ -29,7 +29,9 @@ def stats(year: int | None = Query(None, ge=2000, le=2100), user: User = Depends
             select(month,
                    func.coalesce(func.sum(case((is_debt, Entry.amount))), 0),
                    func.coalesce(func.sum(case((is_pay, Entry.amount))), 0))
-            .where(Entry.user_id == user.id, func.extract("year", local_time) == year).group_by(month)
+            .join(Debtor, Debtor.id == Entry.debtor_id)
+            .where(Entry.user_id == user.id, Debtor.direction == "owes_me", func.extract("year", local_time) == year)
+            .group_by(month)
         )
     }
     monthly = [MonthFlow(month=m, given=flows.get(m, (0, 0))[0], paid=flows.get(m, (0, 0))[1]) for m in range(1, 13)]
@@ -39,17 +41,21 @@ def stats(year: int | None = Query(None, ge=2000, le=2100), user: User = Depends
             select(month,
                    func.coalesce(func.sum(case((is_debt, Entry.amount))), 0),
                    func.coalesce(func.sum(case((is_pay, Entry.amount))), 0))
-            .where(Entry.user_id == user.id, func.extract("year", local_time) == t.year).group_by(month)
+            .join(Debtor, Debtor.id == Entry.debtor_id)
+            .where(Entry.user_id == user.id, Debtor.direction == "owes_me", func.extract("year", local_time) == t.year)
+            .group_by(month)
         )
     }
     month_given, month_paid = cur.get(t.month, (0, 0))
 
-    all_debtors = summaries(db, list(db.scalars(select(Debtor).where(Debtor.user_id == user.id))))
+    everyone = summaries(db, list(db.scalars(select(Debtor).where(Debtor.user_id == user.id))))
+    all_debtors = [d for d in everyone if d.direction != "i_owe"]
+    mine = [d for d in everyone if d.direction == "i_owe" and d.balance > 0]
     with_debt = [d for d in all_debtors if d.balance > 0]
     overdue = [d for d in with_debt if d.overdue]
 
     recent_rows = db.execute(
-        select(Entry, Debtor.number, Debtor.name).join(Debtor, Debtor.id == Entry.debtor_id)
+        select(Entry, Debtor.number, Debtor.name, Debtor.direction).join(Debtor, Debtor.id == Entry.debtor_id)
         .where(Entry.user_id == user.id).order_by(Entry.happened_at.desc(), Entry.id.desc()).limit(8)
     ).all()
 
@@ -59,7 +65,8 @@ def stats(year: int | None = Query(None, ge=2000, le=2100), user: User = Depends
         month_given=month_given, month_paid=month_paid,
         year_given=sum(m.given for m in monthly), year_paid=sum(m.paid for m in monthly), year=year, monthly=monthly,
         top=sorted(with_debt, key=lambda d: d.balance, reverse=True)[:5],
-        recent=[RecentEntry(id=e.id, debtor_id=e.debtor_id, debtor_number=num, debtor_name=name, kind=e.kind,
+        recent=[RecentEntry(id=e.id, debtor_id=e.debtor_id, debtor_number=num, debtor_name=name, direction=dr, kind=e.kind,
                             amount=e.amount, happened_at=e.happened_at, photos=len(e.photos))
-                for e, num, name in recent_rows],
+                for e, num, name, dr in recent_rows],
+        my_debt=sum(d.balance for d in mine), my_creditors=len(mine), my_overdue_count=sum(1 for d in mine if d.overdue),
     )

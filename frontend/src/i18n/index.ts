@@ -37,3 +37,6 @@ export function detectLang(): Lang {
   return typeof navigator !== 'undefined' && navigator.language?.toLowerCase().startsWith('ru') ? 'ru' : 'uz';
 }
 
+
+/** "Men qarzdorman" varag'i uchun so'zlar boshqacha: `mk('sheet.addDebt', mine)` → "Qarz oldim". */
+export const mk = (key: TKey, mine: boolean): TKey => (mine && `${key}.mine` in uz ? (`${key}.mine` as TKey) : key);

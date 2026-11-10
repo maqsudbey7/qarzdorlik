@@ -1,19 +1,30 @@
 import { useEffect, useRef, useState, type ComponentType, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { AnimatePresence, animate, motion, useInView } from 'motion/react';
-import { AlertCircle, BookOpen, CheckCircle2, X, type LucideProps } from 'lucide-react';
+import { AlertCircle, CheckCircle2, X, type LucideProps } from 'lucide-react';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
 import { setLang } from '../store/uiSlice';
 import { LANGS, useT } from '../i18n';
 import { num } from '../lib/format';
 
 // ---------- Logo ----------
+/** Qarzingniber belgisi: "Q" harfi, dumi — qaytib keladigan pul strelkasi. */
+export function LogoMark({ size = 18 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.6} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+      <circle cx="10.5" cy="10.5" r="6.5" />
+      <path d="M14.5 14.5 19.5 19.5" />
+      <path d="M19.5 14.5v5h-5" />
+    </svg>
+  );
+}
+
 export function Logo({ dark = false }: { dark?: boolean }) {
   const t = useT();
   return (
     <span className="flex items-center gap-2.5 font-extrabold tracking-tight">
       <span className="grid h-9 w-9 place-items-center rounded-xl bg-gradient-to-br from-brand-400 via-brand-600 to-violet-700 text-white shadow-glow">
-        <BookOpen size={18} />
+        <LogoMark size={19} />
       </span>
       <span className={`text-lg ${dark ? 'text-white' : 'text-slate-900'}`}>{t('app.name')}</span>
     </span>
@@ -85,8 +96,32 @@ export function Toasts() {
 }
 
 // ---------- Modal (telefonda pastdan chiqadi) ----------
+/** Telefonda klaviatura ochilganda ko'rinadigan maydon (iPhone'da klaviatura sahifani "yopib qo'yadi"). */
+function useVisualViewport(active: boolean) {
+  const [vv, setVv] = useState<{ h: number; top: number } | null>(null);
+  useEffect(() => {
+    const v = window.visualViewport;
+    if (!active || !v) return;
+    const upd = () => setVv({ h: v.height, top: v.offsetTop });
+    upd();
+    v.addEventListener('resize', upd);
+    v.addEventListener('scroll', upd);
+    return () => { v.removeEventListener('resize', upd); v.removeEventListener('scroll', upd); setVv(null); };
+  }, [active]);
+  return vv;
+}
+
+/** Yozish maydoni bosilganda — uni klaviatura ustida, ko'rinadigan joyga suramiz. */
+function revealFocused(e: React.FocusEvent<HTMLElement>) {
+  const el = e.target;
+  if (!(el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement || el instanceof HTMLSelectElement)) return;
+  if (['checkbox', 'radio', 'file'].includes((el as HTMLInputElement).type)) return;
+  setTimeout(() => el.scrollIntoView({ block: 'center', behavior: 'smooth' }), 320);
+}
+
 export function Modal({ open, onClose, title, children, wide }: { open: boolean; onClose: () => void; title: ReactNode; children: ReactNode; wide?: boolean }) {
   const t = useT();
+  const vv = useVisualViewport(open);
   useEffect(() => {
     if (!open) return;
     const h = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
@@ -97,17 +132,18 @@ export function Modal({ open, onClose, title, children, wide }: { open: boolean;
   return createPortal(
     <AnimatePresence>
       {open && (
-        <motion.div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center sm:p-4" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+        <motion.div className="fixed inset-x-0 top-0 z-50 flex h-dvh items-end justify-center sm:items-center sm:p-4"
+          style={vv ? { top: vv.top, height: vv.h } : undefined} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
           <div className="absolute inset-0 bg-ink-950/50 backdrop-blur-sm" onClick={onClose} />
           <motion.div role="dialog" aria-modal="true"
             initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }} transition={{ type: 'spring', stiffness: 380, damping: 36 }}
-            className={`relative flex max-h-[94dvh] w-full flex-col rounded-t-3xl bg-white shadow-2xl sm:rounded-3xl ${wide ? 'sm:max-w-2xl' : 'sm:max-w-lg'}`}>
+            className={`relative flex max-h-[96%] w-full flex-col rounded-t-3xl bg-white shadow-2xl sm:rounded-3xl ${wide ? 'sm:max-w-2xl' : 'sm:max-w-lg'}`}>
             <div className="mx-auto mt-2.5 h-1.5 w-10 rounded-full bg-slate-200 sm:hidden" />
             <div className="flex items-center justify-between gap-3 border-b border-slate-100 px-5 py-3.5 sm:px-6">
               <h2 className="min-w-0 text-lg font-bold">{title}</h2>
               <button type="button" className="icon-btn shrink-0" onClick={onClose} aria-label={t('c.close')}><X size={20} /></button>
             </div>
-            <div className="pb-safe flex-1 overflow-y-auto p-5 sm:p-6">{children}</div>
+            <div className="pb-safe flex-1 overflow-y-auto overscroll-contain p-5 sm:p-6" onFocus={revealFocused}>{children}</div>
           </motion.div>
         </motion.div>
       )}

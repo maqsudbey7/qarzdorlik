@@ -66,10 +66,13 @@ def list_debtors(
     q: str | None = Query(None, description="Ism, telefon yoki varaq raqami (#12)"),
     filter: str = Query("all", pattern="^(all|debt|clear|overdue)$"),
     sort: str = Query("recent", pattern="^(recent|balance|name|number)$"),
+    direction: str | None = Query(None, pattern="^(owes_me|i_owe)$", description="owes_me — menga qarzdorlar, i_owe — men qarzdorman"),
     user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
     stmt = select(Debtor).where(Debtor.user_id == user.id)
+    if direction:
+        stmt = stmt.where(Debtor.direction == direction)
     if q and q.strip():
         term = q.strip()
         digits = "".join(ch for ch in term if ch.isdigit())
@@ -106,7 +109,7 @@ def create_debtor(data: DebtorIn, user: User = Depends(get_current_user), db: Se
     db.execute(select(User.id).where(User.id == user.id).with_for_update())
     number = (db.scalar(select(func.max(Debtor.number)).where(Debtor.user_id == user.id)) or 0) + 1
     d = Debtor(user_id=user.id, number=number, name=data.name.strip(), phone=data.phone, note=data.note,
-               share_token=secrets.token_urlsafe(18))
+               direction=data.direction, share_token=secrets.token_urlsafe(18))
     db.add(d)
     db.commit()
     db.refresh(d)
@@ -121,7 +124,7 @@ def get_debtor(debtor_id: int, user: User = Depends(get_current_user), db: Sessi
 @router.put("/debtors/{debtor_id}", response_model=DebtorDetail)
 def update_debtor(debtor_id: int, data: DebtorIn, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     d = own_debtor(db, user, debtor_id)
-    d.name, d.phone, d.note = data.name.strip(), data.phone, data.note
+    d.name, d.phone, d.note, d.direction = data.name.strip(), data.phone, data.note, data.direction
     db.commit()
     return detail(db, d)
 

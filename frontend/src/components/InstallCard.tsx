@@ -1,6 +1,6 @@
 import { useState, type ReactNode } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
-import { ArrowDown, CheckCircle2, Copy, Download, EllipsisVertical, HelpCircle, PlusSquare, Share, X } from 'lucide-react';
+import { CheckCircle2, Copy, Download, EllipsisVertical, HelpCircle, PlusSquare, Share, X } from 'lucide-react';
 import { isIOSNotSafari, promptInstall, useInstall } from '../lib/pwa';
 import { useAppDispatch } from '../store/hooks';
 import { toast } from '../store/uiSlice';
@@ -12,12 +12,76 @@ const dismissedRecently = () => {
   try { return Date.now() - Number(localStorage.getItem(DISMISS_KEY) || 0) < 7 * 864e5; } catch { return false; }
 };
 
+
+/** Qayerni bosish kerakligini ko'rsatuvchi kichik "ekran" rasmi (haqiqiy tugma emas). */
+function Pulse({ children, className = '' }: { children: ReactNode; className?: string }) {
+  return (
+    <span className={`relative inline-flex items-center justify-center rounded-lg bg-brand-600 px-2 py-1 font-semibold text-white ${className}`}>
+      <span className="absolute -inset-1 animate-ping rounded-xl bg-brand-500/40" />
+      <span className="relative inline-flex items-center gap-1">{children}</span>
+    </span>
+  );
+}
+
+function MockFrame({ children }: { children: ReactNode }) {
+  return <div aria-hidden className="mt-2 select-none overflow-hidden rounded-2xl bg-slate-100 p-2.5 text-[11px] text-slate-500 ring-1 ring-slate-200">{children}</div>;
+}
+
+const IosBar = () => (
+  <MockFrame>
+    <div className="flex items-center justify-between rounded-xl bg-white px-3 py-2 shadow-sm">
+      <span>‹</span><span>›</span><span className="truncate px-2 text-slate-400">qarzingniber…</span>
+      <Pulse><Share size={13} /> / ⋯</Pulse>
+    </div>
+  </MockFrame>
+);
+const IosSheet = ({ label }: { label: string }) => (
+  <MockFrame>
+    <div className="space-y-1 rounded-xl bg-white p-2 shadow-sm">
+      <div className="flex justify-between rounded-lg px-2 py-1"><span>Copy</span><Copy size={12} /></div>
+      <div className="flex justify-between rounded-lg px-2 py-1"><span>Add Bookmark</span><span>☆</span></div>
+      <div className="flex"><Pulse className="w-full justify-between"><span>{label}</span><PlusSquare size={13} /></Pulse></div>
+    </div>
+  </MockFrame>
+);
+const IosAdd = ({ label }: { label: string }) => (
+  <MockFrame>
+    <div className="flex items-center justify-between rounded-xl bg-white px-3 py-2 shadow-sm">
+      <span className="text-brand-600">Cancel</span><span className="font-semibold text-slate-700">Qarzingniber</span><Pulse>{label}</Pulse>
+    </div>
+  </MockFrame>
+);
+const AndroidBar = () => (
+  <MockFrame>
+    <div className="flex items-center gap-2 rounded-xl bg-white px-3 py-2 shadow-sm">
+      <span className="flex-1 truncate rounded-full bg-slate-100 px-2 py-0.5 text-slate-400">qarzingniber…</span>
+      <Pulse><EllipsisVertical size={13} /></Pulse>
+    </div>
+  </MockFrame>
+);
+const AndroidMenu = ({ label }: { label: string }) => (
+  <MockFrame>
+    <div className="ml-auto w-4/5 space-y-1 rounded-xl bg-white p-2 shadow-sm">
+      <div className="px-2 py-1">New tab</div><div className="px-2 py-1">History</div>
+      <div className="flex"><Pulse className="w-full justify-start"><Download size={12} /> {label}</Pulse></div>
+    </div>
+  </MockFrame>
+);
+const AndroidConfirm = ({ label }: { label: string }) => (
+  <MockFrame>
+    <div className="rounded-xl bg-white p-3 shadow-sm">
+      <div className="flex items-center gap-2"><img src="/icons/icon-192.png" alt="" className="h-6 w-6 rounded" /><b className="text-slate-700">Qarzingniber</b></div>
+      <div className="mt-2 flex justify-end gap-2"><span className="px-2 py-1">Cancel</span><Pulse>{label}</Pulse></div>
+    </div>
+  </MockFrame>
+);
+
 /** Qadam: raqam + matn (+ ichida kichik belgi). Bular tugma EMAS — shuning uchun oddiy matn ko'rinishida. */
-function Step({ n, children }: { n: number; children: ReactNode }) {
+function Step({ n, children, mock }: { n: number; children: ReactNode; mock?: ReactNode }) {
   return (
     <li className="flex gap-3">
       <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-brand-600 text-sm font-bold text-white">{n}</span>
-      <span className="pt-0.5 text-[15px] leading-snug text-slate-700">{children}</span>
+      <span className="min-w-0 flex-1 pt-0.5 text-[15px] leading-snug text-slate-700">{children}{mock}</span>
     </li>
   );
 }
@@ -67,16 +131,13 @@ function Guide({ onInstalled }: { onInstalled: () => void }) {
     <div className="space-y-4">
       {isIOSNotSafari() && <div className="rounded-2xl bg-amber-50 p-4 text-sm text-amber-900 ring-1 ring-amber-200">{t('pwa.ios.notSafari')}</div>}
       <ol className="space-y-3.5">
-        <Step n={1}>{step('pwa.ios.1')} <Glyph><Share size={17} /></Glyph></Step>
-        <Step n={2}>{step('pwa.ios.2')} <Glyph><PlusSquare size={17} /></Glyph></Step>
-        <Step n={3}>{step('pwa.ios.3')}</Step>
+        <Step n={1} mock={<IosBar />}>{step('pwa.ios.1')} <Glyph><Share size={17} /></Glyph></Step>
+        <Step n={2} mock={<IosSheet label={t('pwa.ios.addLabel')} />}>{step('pwa.ios.2')} <Glyph><PlusSquare size={17} /></Glyph></Step>
+        <Step n={3} mock={<IosAdd label={t('pwa.ios.addBtn')} />}>{step('pwa.ios.3')}</Step>
+        <Step n={4}>{t('pwa.after')}</Step>
       </ol>
       <p className="rounded-xl bg-slate-50 px-3 py-2 text-xs text-slate-500">{t('pwa.ios.note')}</p>
       {isIOSNotSafari() && <CopyLinkButton />}
-      {/* Safari'ning "Ulashish" tugmasi ekran pastida — o'sha tomonga ko'rsatamiz */}
-      <motion.div className="flex justify-center text-brand-600" animate={{ y: [0, 8, 0] }} transition={{ repeat: Infinity, duration: 1.4 }}>
-        <ArrowDown size={28} />
-      </motion.div>
     </div>
   );
 
@@ -84,9 +145,10 @@ function Guide({ onInstalled }: { onInstalled: () => void }) {
     <div className="space-y-4">
       {s.canPrompt && <button type="button" onClick={install} className="btn-primary w-full py-3.5 text-base"><Download size={19} /> {t('pwa.install')}</button>}
       <ol className="space-y-3.5">
-        <Step n={1}>{step('pwa.android.1')} <Glyph><EllipsisVertical size={17} /></Glyph></Step>
-        <Step n={2}>{step('pwa.android.2')}</Step>
-        <Step n={3}>{step('pwa.android.3')}</Step>
+        <Step n={1} mock={<AndroidBar />}>{step('pwa.android.1')} <Glyph><EllipsisVertical size={17} /></Glyph></Step>
+        <Step n={2} mock={<AndroidMenu label={t('pwa.android.menuLabel')} />}>{step('pwa.android.2')}</Step>
+        <Step n={3} mock={<AndroidConfirm label={t('pwa.install')} />}>{step('pwa.android.3')}</Step>
+        <Step n={4}>{t('pwa.after')}</Step>
       </ol>
     </div>
   );

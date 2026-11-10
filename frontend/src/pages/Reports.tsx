@@ -42,6 +42,14 @@ export default function Reports() {
         ))}
       </motion.div>
 
+      {s.my_debt > 0 && (
+        <Link to="/app/qarzlarim" className="flex items-center gap-3 rounded-2xl bg-gradient-to-r from-amber-500 to-orange-500 p-4 text-white shadow-lg shadow-orange-500/25">
+          <span className="grid h-10 w-10 place-items-center rounded-xl bg-white/20"><ArrowDownLeft size={20} /></span>
+          <span className="flex-1"><span className="block text-xs text-orange-50">{t('rep.mine')} · {t('rep.mineSub', { n: s.my_creditors })}</span><b className="text-lg">{money(s.my_debt)}</b></span>
+          <ChevronRight size={20} />
+        </Link>
+      )}
+
       <div className="card p-5 sm:p-6">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <h2 className="font-bold">{t('rep.chart')}</h2>
@@ -108,7 +116,7 @@ export default function Reports() {
                 <span className="w-9 shrink-0 text-xs font-bold text-slate-400">#{e.debtor_number}</span>
                 <span className="min-w-0 flex-1"><span className="block truncate text-sm font-semibold">{e.debtor_name}</span><span className="text-xs text-slate-400">{dayLabel(e.happened_at)}</span></span>
                 {e.photos > 0 && <Image size={14} className="text-slate-400" />}
-                <span className={`text-sm font-bold tabular-nums ${e.kind === 'debt' ? 'text-rose-600' : 'text-emerald-600'}`}>{e.kind === 'debt' ? '+' : '−'}{moneyShort(e.amount)}</span>
+                <span className={`text-sm font-bold tabular-nums ${e.direction === 'i_owe' ? 'text-orange-600' : e.kind === 'debt' ? 'text-rose-600' : 'text-emerald-600'}`}>{e.kind === 'debt' ? '+' : '−'}{moneyShort(e.amount)}</span>
               </Link>
             ))}
           </div>

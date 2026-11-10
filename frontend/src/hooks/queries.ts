@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { debtorsApi, entriesApi, publicApi, statsApi } from '../api/endpoints';
-import type { DebtorFilter, DebtorPayload, DebtorSort } from '../types/api';
+import type { Direction, DebtorFilter, DebtorPayload, DebtorSort } from '../types/api';
 import { useAppDispatch } from '../store/hooks';
 import { toast } from '../store/uiSlice';
 
@@ -11,7 +11,7 @@ export const keys = {
   pub: (token: string) => ['public', token] as const,
 };
 
-export const useDebtors = (f: { q?: string; filter?: DebtorFilter; sort?: DebtorSort }) =>
+export const useDebtors = (f: { q?: string; filter?: DebtorFilter; sort?: DebtorSort; direction?: Direction }) =>
   useQuery({ queryKey: keys.debtors(f), queryFn: () => debtorsApi.list(f), placeholderData: (prev) => prev });
 export const useDebtor = (id: number) => useQuery({ queryKey: keys.debtor(id), queryFn: () => debtorsApi.get(id), enabled: id > 0 });
 export const useStats = (year?: number) => useQuery({ queryKey: keys.stats(year), queryFn: () => statsApi.get(year), placeholderData: (prev) => prev });

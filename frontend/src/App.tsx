@@ -40,7 +40,8 @@ export default function App() {
       <Route path="royxat" element={<Auth key="register" mode="register" />} />
       <Route path="v/:token" element={<PublicSheet />} />
       <Route path="app" element={<AppShell />}>
-        <Route index element={<Home />} />
+        <Route index element={<Home key="owes_me" />} />
+        <Route path="qarzlarim" element={<Home key="i_owe" direction="i_owe" />} />
         <Route path="q/:id" element={<Debtor />} />
         <Route path="hisobot" element={<Reports />} />
         <Route path="sozlamalar" element={<Settings />} />

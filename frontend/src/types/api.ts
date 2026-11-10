@@ -2,6 +2,7 @@
 export type EntryKind = 'debt' | 'payment';
 export type DebtorFilter = 'all' | 'debt' | 'clear' | 'overdue';
 export type DebtorSort = 'recent' | 'balance' | 'name' | 'number';
+export type Direction = 'owes_me' | 'i_owe';
 
 export interface User { id: number; name: string; phone: string; shop_name: string }
 export interface TokenResponse { access_token: string; token_type: 'bearer'; user: User }
@@ -15,6 +16,7 @@ export interface DebtorSummary {
   name: string;
   phone: string;
   note: string;
+  direction: Direction;
   created_at: string;
   total_debt: number;
   total_paid: number;
@@ -24,7 +26,7 @@ export interface DebtorSummary {
   next_due: string | null;
   overdue: boolean;
 }
-export interface DebtorPayload { name: string; phone: string; note: string }
+export interface DebtorPayload { name: string; phone: string; note: string; direction?: Direction }
 
 export interface Photo { id: number; content_type: string; size: number }
 export interface Entry {
@@ -53,7 +55,10 @@ export interface Stats {
   year: number;
   monthly: { month: number; given: number; paid: number }[];
   top: DebtorSummary[];
-  recent: { id: number; debtor_id: number; debtor_number: number; debtor_name: string; kind: EntryKind; amount: number; happened_at: string; photos: number }[];
+  my_debt: number;
+  my_creditors: number;
+  my_overdue_count: number;
+  recent: { id: number; debtor_id: number; debtor_number: number; debtor_name: string; direction: Direction; kind: EntryKind; amount: number; happened_at: string; photos: number }[];
 }
 
 export interface PublicSheet {

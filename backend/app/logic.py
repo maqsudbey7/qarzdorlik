@@ -35,7 +35,8 @@ def summarize(d: Debtor, rows: list[Row], t: date | None = None) -> DebtorSummar
     balance = total_debt - total_paid
     next_due = min(open_dues) if open_dues and balance > 0 else None
     return DebtorSummary(
-        id=d.id, number=d.number, name=d.name, phone=d.phone, note=d.note, created_at=d.created_at,
+        id=d.id, number=d.number, name=d.name, phone=d.phone, note=d.note, direction=d.direction or "owes_me",
+        created_at=d.created_at,
         total_debt=total_debt, total_paid=total_paid, balance=balance, entries_count=len(rows),
         last_entry_at=max((r.happened_at for r in rows), default=None),
         next_due=next_due, overdue=bool(next_due and next_due < t),

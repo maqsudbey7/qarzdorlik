@@ -1,9 +1,9 @@
 """Demo hisob: bir nechta qarzdor, yil davomidagi yozuvlar va namunaviy "spisok" rasmlari."""
 import secrets
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from xml.sax.saxutils import escape
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
@@ -52,6 +52,48 @@ DEMO = [
 ]
 
 
+# Men qarzdor bo'lgan odamlar (ulgurji yetkazib beruvchilar)
+DEMO_I_OWE = [
+    ("Agro Trade (ulgurji)", "+998712001020", "Guruch va yog‘ yetkazib beruvchi", [
+        (20, "debt", 12_000_000, "Guruch 20 qop nasiyaga", 25, None),
+        (8, "payment", 5_000_000, "Bank orqali", None, None),
+    ]),
+    ("Rustam aka (qo‘shni)", "+998909998877", "Naqd pul", [
+        (5, "debt", 3_000_000, "Tovar olish uchun naqd", 10, None),
+    ]),
+]
+
+
+def _add_sheets(db: Session, user: User, items: list, start: int, direction: str) -> None:
+    now = datetime.now(TASHKENT).replace(second=0, microsecond=0)
+    for number, (name, phone, note, entries) in enumerate(items, start=start):
+        d = Debtor(user_id=user.id, number=number, name=name, phone=phone, note=note, direction=direction,
+                   share_token=secrets.token_urlsafe(18))
+        db.add(d)
+        for days, kind, amount, text, due_in, lines in entries:
+            when = (now - timedelta(days=days)).replace(hour=10 + days % 8, minute=(days * 7) % 60)
+            e = Entry(debtor=d, user_id=user.id, kind=EntryKind(kind), amount=amount, happened_at=when, note=text,
+                      due_date=(when + timedelta(days=due_in)).date() if due_in else None)
+            if lines:
+                data = receipt_svg(SHOP, when, lines)
+                e.photos.append(Photo(content_type="image/svg+xml", size=len(data), data=data))
+            db.add(e)
+
+
+def seed_demo_i_owe(db: Session) -> None:
+    """Demo hisobga "men qarzdorman" varaqlarini qo'shish (eski bazada ham, faqat bir marta)."""
+    user = db.scalar(select(User).where(User.phone == settings.demo_phone))
+    if user is None or db.scalar(select(Debtor.id).where(Debtor.user_id == user.id, Debtor.direction == "i_owe").limit(1)):
+        return
+    try:
+        db.execute(select(User.id).where(User.id == user.id).with_for_update())
+        start = (db.scalar(select(func.max(Debtor.number)).where(Debtor.user_id == user.id)) or 0) + 1
+        _add_sheets(db, user, DEMO_I_OWE, start, "i_owe")
+        db.commit()
+    except IntegrityError:
+        db.rollback()
+
+
 def receipt_svg(shop: str, when: datetime, lines: list[tuple[str, int, int]]) -> bytes:
     """Qo'lda yozilgan spisokka o'xshash namunaviy rasm (demo uchun)."""
     def sp(n: int) -> str:
@@ -93,19 +135,29 @@ def seed_demo(db: Session) -> None:
                     password_hash=hash_password(settings.demo_password))
         db.add(user)
         db.flush()
-        now = datetime.now(TASHKENT).replace(second=0, microsecond=0)
-        for number, (name, phone, note, entries) in enumerate(DEMO, start=1):
-            d = Debtor(user_id=user.id, number=number, name=name, phone=phone, note=note,
-                       share_token=secrets.token_urlsafe(18))
-            db.add(d)
-            for days, kind, amount, text, due_in, lines in entries:
-                when = (now - timedelta(days=days)).replace(hour=10 + days % 8, minute=(days * 7) % 60)
-                e = Entry(debtor=d, user_id=user.id, kind=EntryKind(kind), amount=amount, happened_at=when, note=text,
-                          due_date=(when + timedelta(days=due_in)).date() if due_in else None)
-                if lines:
-                    data = receipt_svg(SHOP, when, lines)
-                    e.photos.append(Photo(content_type="image/svg+xml", size=len(data), data=data))
-                db.add(e)
+        _add_sheets(db, user, DEMO, 1, "owes_me")
         db.commit()
     except IntegrityError:  # bir vaqtda ikkita serverless nusxa seed qilsa
         db.rollback()
+
+
+DEMO_RESET_EVERY = timedelta(minutes=30)
+
+
+def reset_demo_if_due(db: Session, user: User) -> None:
+    """Demo hisobga hamma kira oladi — kimdir o'zgartirib yuborsa ham har 30 daqiqada asl holiga qaytadi."""
+    if user.phone != settings.demo_phone:
+        return
+    now = datetime.now(timezone.utc)
+    locked = db.scalar(select(User).where(User.id == user.id).with_for_update())
+    if locked.demo_reset_at and now - locked.demo_reset_at < DEMO_RESET_EVERY:
+        db.rollback()
+        return
+    for d in list(locked.debtors):
+        db.delete(d)
+    db.flush()
+    locked.name, locked.shop_name = "Demo sotuvchi", SHOP
+    _add_sheets(db, locked, DEMO, 1, "owes_me")
+    _add_sheets(db, locked, DEMO_I_OWE, len(DEMO) + 1, "i_owe")
+    locked.demo_reset_at = now
+    db.commit()

@@ -1,13 +1,13 @@
 import { useMemo } from 'react';
 import { motion } from 'motion/react';
 import { CalendarClock, Minus, Plus } from 'lucide-react';
-import { useT } from '../i18n';
+import { mk, useT } from '../i18n';
 import { dayLabel, fmtDay, fmtTime, money } from '../lib/format';
 import type { Entry } from '../types/api';
 import { PhotoStrip, type PhotoSource } from './Photos';
 
 /** Varaqdagi yozuvlar: kunlar bo'yicha guruhlangan, har biridan keyingi qoldiq bilan. */
-export default function Timeline({ entries, src, onEdit }: { entries: Entry[]; src: PhotoSource; onEdit?: (e: Entry) => void }) {
+export default function Timeline({ entries, src, onEdit, mine = false }: { entries: Entry[]; src: PhotoSource; onEdit?: (e: Entry) => void; mine?: boolean }) {
   const t = useT();
   const { groups, after } = useMemo(() => {
     const asc = [...entries].sort((a, b) => a.happened_at.localeCompare(b.happened_at) || a.id - b.id);
@@ -43,7 +43,7 @@ export default function Timeline({ entries, src, onEdit }: { entries: Entry[]; s
                       <div className="flex flex-wrap items-start justify-between gap-x-2 gap-y-1">
                         <div>
                           <div className={`whitespace-nowrap text-lg font-extrabold tabular-nums ${debt ? 'text-rose-600' : 'text-emerald-600'}`}>{debt ? '+' : '−'}{money(e.amount)}</div>
-                          <div className="text-xs text-slate-400">{t(debt ? 'kind.debt' : 'kind.payment')} · {fmtTime(e.happened_at)}</div>
+                          <div className="text-xs text-slate-400">{t(mk(debt ? 'kind.debt' : 'kind.payment', mine))} · {fmtTime(e.happened_at)}</div>
                         </div>
                         <span className="shrink-0 rounded-lg bg-slate-50 px-2 py-1 text-[11px] font-medium tabular-nums text-slate-500">{t('sheet.after', { v: money(after.get(e.id) ?? 0) })}</span>
                       </div>

@@ -1,8 +1,8 @@
 {
   "id": "/app",
-  "name": "Qarz daftar — qarzdorlar hisobi",
-  "short_name": "Qarz daftar",
-  "description": "Kimga, qachon, qancha qarz berilganini rasm-dalil bilan yozib boring. Har bir qarzdorga alohida varaq.",
+  "name": "Qarzingniber — qarz daftari",
+  "short_name": "Qarzingniber",
+  "description": "Kimga qarz berdingiz va kimdan qarz oldingiz — hammasini rasm-dalil bilan yozib boring.",
   "lang": "uz",
   "dir": "ltr",
   "start_url": "/app?source=pwa",
