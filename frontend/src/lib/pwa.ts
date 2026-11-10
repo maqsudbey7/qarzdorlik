@@ -18,6 +18,21 @@ export const isStandalone = () =>
 export const isIOS = () =>
   /iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 
+export const isAndroid = () => /android/i.test(navigator.userAgent);
+export const isMobile = () => isIOS() || isAndroid();
+
+/** Telegram, Instagram, Facebook va h.k. ichidagi brauzer — u yerdan ilova o'rnatib bo'lmaydi. */
+export function isInAppBrowser(): boolean {
+  const ua = navigator.userAgent;
+  if ((window as Window & { TelegramWebviewProxy?: unknown }).TelegramWebviewProxy) return true;
+  if (/Telegram|FBAN|FBAV|Instagram|Line\/|MicroMessenger|; wv\)/i.test(ua)) return true;
+  // iPhone: haqiqiy brauzerlar UA'sida "Safari/" bo'ladi, ilovalar ichidagi oynada — yo'q
+  return isIOS() && !/Safari\//.test(ua);
+}
+
+/** iPhone'da Safari emas (Chrome, Yandex, ...) */
+export const isIOSNotSafari = () => isIOS() && /CriOS|FxiOS|EdgiOS|YaBrowser|OPiOS/i.test(navigator.userAgent);
+
 /** Ilova ishga tushganda bir marta chaqiriladi. */
 export function setupPwa() {
   // Chrome/Android: o'rnatish so'rovini ushlab qolamiz — o'zimizning chiroyli tugmamiz orqali ko'rsatamiz
@@ -36,15 +51,19 @@ export function setupPwa() {
 }
 
 /** O'rnatish oynasini ochadi. true — foydalanuvchi o'rnatdi. */
-export async function promptInstall(): Promise<boolean> {
-  if (!deferred) return false;
+export async function promptInstall(): Promise<'accepted' | 'dismissed' | 'unavailable'> {
+  if (!deferred) return 'unavailable';
   const e = deferred;
-  await e.prompt();
-  const { outcome } = await e.userChoice;
-  deferred = null;
-  if (outcome === 'accepted') installed = true;
+  deferred = null;   // bitta hodisani faqat bir marta ishlatish mumkin
   emit();
-  return outcome === 'accepted';
+  try {
+    await e.prompt();
+    const { outcome } = await e.userChoice;
+    if (outcome === 'accepted') { installed = true; emit(); }
+    return outcome;
+  } catch {
+    return 'unavailable';   // brauzer oynani ko'rsata olmadi — yo'riqnomani ochamiz
+  }
 }
 
 /** Chiqishda: shu telefondagi saqlangan ma'lumot va rasmlarni o'chirish. */
@@ -53,10 +72,10 @@ export function clearUserData() {
   if ('caches' in window) ['qarz-api-v1', 'qarz-photos-v1'].forEach((k) => caches.delete(k).catch(() => {}));
 }
 
-export interface InstallState { canPrompt: boolean; standalone: boolean; installed: boolean; ios: boolean }
+export interface InstallState { canPrompt: boolean; standalone: boolean; installed: boolean; ios: boolean; mobile: boolean; inApp: boolean }
 let snapshot: InstallState | null = null;
 function getInstall(): InstallState {
-  const next = { canPrompt: !!deferred, standalone: isStandalone(), installed, ios: isIOS() };
+  const next = { canPrompt: !!deferred, standalone: isStandalone(), installed, ios: isIOS(), mobile: isMobile(), inApp: isInAppBrowser() };
   if (!snapshot || Object.entries(next).some(([k, v]) => snapshot![k as keyof InstallState] !== v)) snapshot = next;
   return snapshot;
 }
