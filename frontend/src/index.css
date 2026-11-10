@@ -25,4 +25,6 @@
 .no-scrollbar::-webkit-scrollbar { display: none; }
 .no-scrollbar { scrollbar-width: none; }
 .pb-safe { padding-bottom: max(env(safe-area-inset-bottom), 0px); }
+.pt-safe { padding-top: env(safe-area-inset-top); }
+.top-header { top: calc(3.5rem + env(safe-area-inset-top)); }
 .bg-dots { background-image: radial-gradient(rgb(255 255 255 / .12) 1px, transparent 1px); background-size: 18px 18px; }

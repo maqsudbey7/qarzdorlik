@@ -21,6 +21,7 @@ Har bir qarzdorga **alohida varaq** va avtomatik **raqam** (#1, #2, …) berilad
 - 🔗 **Mijozga havola** — mijoz o‘z varag‘ini (yozuvlar va rasmlar) ko‘radi, o‘zgartira olmaydi
 - 💬 **Eslatma** — SMS / WhatsApp / Telegram orqali tayyor matn (o‘zbek yoki rus tilida)
 - 🌐 **O‘zbek va rus tili**, telefon uchun qulay dizayn
+- 📱 **Telefon ilovasi (PWA)** — saytdan bir bosishda o‘rnatiladi (Android: «O‘rnatish» tugmasi, iPhone: Ulashish → «Bosh ekranga qo‘shish»), to‘liq ekranda ochiladi, internet bo‘lmasa oxirgi ma’lumotlar ko‘rinadi; ikonkani uzoq bossangiz — «Qarz yozish» tezkor havolasi
 
 Qarz qoldig‘i va muddatlar to‘lovlar eng eski qarzdan boshlab yopiladi (FIFO) degan qoida bilan hisoblanadi.
 To‘lov qarzdan ko‘p bo‘lishi mumkin emas; bir vaqtdagi yozuvlar `SELECT … FOR UPDATE` bilan himoyalangan.

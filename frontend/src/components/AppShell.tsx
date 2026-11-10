@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
-import { Link, Navigate, NavLink, useLocation, useNavigate, useOutlet } from 'react-router-dom';
+import { useOnline } from '../lib/pwa';
+import { Link, Navigate, NavLink, useLocation, useNavigate, useOutlet, useSearchParams } from 'react-router-dom';
 import { motion } from 'motion/react';
-import { BarChart3, LogOut, Plus, Settings, Users } from 'lucide-react';
+import { BarChart3, LogOut, Plus, Settings, Users, WifiOff } from 'lucide-react';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
 import { logout } from '../store/authSlice';
 import { useT, type TKey } from '../i18n';
@@ -23,8 +24,14 @@ export default function AppShell() {
   const outlet = useOutlet();
   const [picking, setPicking] = useState(false);
   const loggingOut = useRef(false);
+  const online = useOnline();
+  const [sp, setSp] = useSearchParams();
 
   useEffect(() => { window.scrollTo(0, 0); }, [pathname]);
+  // Ilova ikonkasidagi "Qarz yozish" tezkor havolasi: /app?new=1
+  useEffect(() => {
+    if (sp.get('new') === '1') { setPicking(true); sp.delete('new'); setSp(sp, { replace: true }); }
+  }, [sp, setSp]);
   if (!user) return <Navigate to={loggingOut.current ? '/' : '/kirish'} replace />;
 
   // Qarzdor tanlangach — uning varag'i ochiladi va qarz yozish oynasi chiqadi
@@ -61,13 +68,21 @@ export default function AppShell() {
       </aside>
 
       {/* Telefon: yuqori panel */}
-      <header className="sticky top-0 z-30 flex h-14 items-center justify-between border-b border-slate-200/70 bg-white/85 px-4 backdrop-blur-xl lg:hidden">
+      <header className="pt-safe sticky top-0 z-30 border-b border-slate-200/70 bg-white/85 backdrop-blur-xl lg:hidden">
+        <div className="flex h-14 items-center justify-between px-4">
         <Link to="/app"><Logo /></Link>
         <div className="flex items-center gap-1">
           <LangSwitch />
           <NavLink to="/app/sozlamalar" aria-label={t('nav.settings')} className={({ isActive }) => `icon-btn ${isActive ? 'bg-brand-50 text-brand-600' : ''}`}><Settings size={20} /></NavLink>
         </div>
+        </div>
       </header>
+
+      {!online && (
+        <div className="sticky top-14 z-30 flex items-center justify-center gap-2 bg-amber-500 px-4 py-2 text-center text-xs font-semibold text-white lg:top-0">
+          <WifiOff size={14} /> {t('net.offline')}
+        </div>
+      )}
 
       <main className="mx-auto max-w-5xl px-4 pb-28 pt-5 sm:px-6 lg:px-10 lg:pb-12 lg:pt-10">
         <motion.div key={pathname} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25, ease: 'easeOut' }}>

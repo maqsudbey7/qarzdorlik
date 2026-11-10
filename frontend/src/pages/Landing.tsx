@@ -6,6 +6,7 @@ import { useDemoLogin } from '../hooks/useDemoLogin';
 import { useT, type TKey } from '../i18n';
 import { stagger } from '../lib/motion';
 import { LangSwitch, Logo, Toasts } from '../components/ui';
+import { InstallButton } from '../components/InstallCard';
 
 const FEATURES: { icon: typeof Hash; k: 'f1' | 'f2' | 'f3' | 'f4'; cls: string }[] = [
   { icon: Hash, k: 'f1', cls: 'from-brand-500 to-violet-600' },
@@ -88,6 +89,7 @@ export default function Landing() {
                   <PlayCircle size={18} /> {demo.isPending ? t('c.wait') : t('land.demo')}
                 </button>
               )}
+              <InstallButton className="btn px-6 py-3.5 text-base text-white ring-1 ring-white/25 hover:bg-white/10" />
             </motion.div>
           </motion.div>
           <PhonePreview />

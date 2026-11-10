@@ -7,6 +7,7 @@ import { useT, type TKey } from '../i18n';
 import { dayLabel, daysUntil, money, moneyShort } from '../lib/format';
 import type { DebtorFilter, DebtorSort, DebtorSummary } from '../types/api';
 import { CountUp, Empty, ErrorBox, NumberBadge, Skeleton } from '../components/ui';
+import { InstallBanner } from '../components/InstallCard';
 
 const FILTERS: [DebtorFilter, TKey][] = [['all', 'home.f.all'], ['debt', 'home.f.debt'], ['overdue', 'home.f.overdue'], ['clear', 'home.f.clear']];
 const SORTS: DebtorSort[] = ['recent', 'balance', 'name', 'number'];
@@ -66,6 +67,7 @@ export default function Home() {
   return (
     <div className="space-y-5">
       <p className="text-sm font-medium text-slate-500">{t('home.hello', { name: user?.name.split(' ')[0] ?? '' })}</p>
+      <InstallBanner />
 
       {/* Jami qarz kartochkasi */}
       <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}
@@ -108,7 +110,7 @@ export default function Home() {
       ) : (
         <>
           {/* Qidiruv va filtrlar */}
-          <div className="sticky top-14 z-20 -mx-4 space-y-3 bg-slate-50/90 px-4 py-2 backdrop-blur lg:static lg:mx-0 lg:bg-transparent lg:p-0 lg:backdrop-blur-none">
+          <div className="top-header sticky z-20 -mx-4 space-y-3 bg-slate-50/90 px-4 py-2 backdrop-blur lg:static lg:mx-0 lg:bg-transparent lg:p-0 lg:backdrop-blur-none">
             <div className="relative">
               <Search size={19} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
               <input type="search" className="input rounded-2xl py-3.5 pl-12 text-base shadow-soft" placeholder={t('home.searchPh')} value={q} onChange={(e) => set({ q: e.target.value })} />

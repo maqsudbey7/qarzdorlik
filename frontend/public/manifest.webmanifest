@@ -1,0 +1,30 @@
+{
+  "id": "/app",
+  "name": "Qarz daftar — qarzdorlar hisobi",
+  "short_name": "Qarz daftar",
+  "description": "Kimga, qachon, qancha qarz berilganini rasm-dalil bilan yozib boring. Har bir qarzdorga alohida varaq.",
+  "lang": "uz",
+  "dir": "ltr",
+  "start_url": "/app?source=pwa",
+  "scope": "/",
+  "display": "standalone",
+  "display_override": ["standalone", "minimal-ui"],
+  "orientation": "portrait",
+  "background_color": "#f8fafc",
+  "theme_color": "#4f46e5",
+  "categories": ["finance", "business", "productivity"],
+  "icons": [
+    { "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
+  "shortcuts": [
+    { "name": "Qarz yozish", "short_name": "Qarz yozish", "url": "/app?new=1", "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }] },
+    { "name": "Hisobot", "short_name": "Hisobot", "url": "/app/hisobot", "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }] }
+  ],
+  "screenshots": [
+    { "src": "/screenshots/home.png", "sizes": "780x1688", "type": "image/png", "form_factor": "narrow", "label": "Qarzdorlar ro‘yxati" },
+    { "src": "/screenshots/sheet.png", "sizes": "780x1688", "type": "image/png", "form_factor": "narrow", "label": "Qarzdor varag‘i" },
+    { "src": "/screenshots/wide.png", "sizes": "1440x900", "type": "image/png", "form_factor": "wide", "label": "Kompyuterda" }
+  ]
+}

@@ -7,6 +7,7 @@ import { logout, userLoaded } from '../store/authSlice';
 import { toast } from '../store/uiSlice';
 import { useT } from '../i18n';
 import { ErrorBox, Field, LangSwitch } from '../components/ui';
+import { InstallSection } from '../components/InstallCard';
 
 export default function Settings() {
   const t = useT();
@@ -33,6 +34,7 @@ export default function Settings() {
         {save.error && <ErrorBox error={save.error} />}
         <button disabled={save.isPending} className="btn-primary w-full">{save.isPending ? t('c.saving') : t('c.save')}</button>
       </form>
+      <InstallSection />
       <div className="card flex items-center justify-between p-5">
         <span className="font-bold">{t('set.lang')}</span>
         <LangSwitch />
